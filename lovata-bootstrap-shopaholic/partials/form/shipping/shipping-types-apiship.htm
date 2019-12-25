@@ -1,0 +1,54 @@
+{% set shippingTypeId = input('shipping_type_id') %}
+{% set checkedTariff = input('order.property.apiship_tariff_id') %}
+{% set cityData = ApiShipCheckout.getCityData() %}
+{% set cityGuid = cityData.id %}
+{% set apiShipData = cityGuid ? obShippingType.api.getData({city_guid: (cityGuid)}) : null %}
+<div class="_js_apiship_wrapper">
+    <div class="form-check">
+        <input class="form-check-input _js_apiship_parent" type="radio" name="shipping_type_id"
+               id="shipping-type-{{ obShippingType.id }}"
+               {{ isChecked and apiShipData ? 'checked' : '' }} {{ apiShipData ? '' : 'disabled' }}
+               value="{{ obShippingType.id }}" required>
+        <label class="form-check-label" for="shipping-type-{{ obShippingType.id }}">
+            {{ obShippingType.name }}
+        </label>
+    </div>
+    {% set deliveryTypes = {deliveryToPoint: 'Delivery to pickup point', deliveryToDoor: 'Courier delivery to door'} %}
+    {% for deliveryType, deliveryLabel in deliveryTypes if apiShipData[deliveryType] %}
+        <div class="ml-4 mt-2">
+        <h6>{{ deliveryLabel }}</h6>
+        {% for providerTariff in apiShipData[deliveryType] %}
+            <div class="ml-4">
+                {% set provider = ApiShipCheckout.getProvider(providerTariff.providerKey) %}
+                <h6>{{ (provider ? provider.name : providerTariff.providerKey)|capitalize }}</h6>
+                {% for tariff in providerTariff.tariffs %}
+                <div class="form-check">
+                    {% set val = tariff.tariffId ~ '.' ~ (deliveryType == 'deliveryToPoint' ? 2 : 1) %}
+                    {% set addClass = deliveryType == 'deliveryToPoint' ? '_js_apiship_type _js_apiship_pvz' : '_js_apiship_type' %}
+                    {% set isDisabled = not tariff.deliveryCost or (deliveryType == 'deliveryToPoint' and not tariff.pointIds) %}
+                    <input class="form-check-input {{ addClass }}" type="radio" name="order[property][apiship_tariff_id]"
+                           id="apiship-tariff-{{ val }}" {{ isChecked ? 'required' : '' }}
+                           value="{{ val }}" {{ isDisabled ? 'disabled' : '' }}
+                           {{ checkedTariff == val ? 'checked' : '' }}>
+                    <label class="form-check-label" for="apiship-tariff-{{ val }}">
+                        {{ tariff.tariffName }}
+                        {% if isDisabled %}
+                        - <span class="text-danger">not available</span>
+                        {% else %}
+                        - {{ tariff.deliveryCost }} {{ obShippingType.currency }}
+                            {% if tariff.daysMin or tariff.daysMax  %}
+                                {% set daysInterval = tariff.daysMin ~ (tariff.daysMax and tariff.daysMax != tariff.daysMin ? (tariff.daysMin ? '-' : '') ~ tariff.daysMax : '') %}
+                                <small>({{ daysInterval }} {{ "gabix.apishipshopaholic::lang.count.days"|transchoice(tariff.daysMax) }})</small>
+                            {% endif %}
+                        {% endif %}
+                    </label>
+                </div>
+                {% endfor %}
+            </div>
+        {% endfor %}
+        </div>
+    {% endfor %}
+    {% for param, val in cityData %}
+    <input type="hidden" name="order[property][apiship_city_data][{{ param }}]" value="{{ val }}">
+    {% endfor %}
+</div>

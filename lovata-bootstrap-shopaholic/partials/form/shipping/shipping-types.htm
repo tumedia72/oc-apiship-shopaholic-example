@@ -1,0 +1,17 @@
+{% set obShippingTypeList = obShippingTypeList ? obShippingTypeList : ShippingTypeList.make().sort().active() %}
+{% set shippingTypeId = input('shipping_type_id') %}
+{% for obShippingType in obShippingTypeList %}
+    {% set isChecked = shippingTypeId ? shippingTypeId == obShippingType.id : loop.first %}
+    {% if obShippingType.api_class == 'Gabix\\ApiShipShopaholic\\Classes\\ApiShipDelivery' %}
+        {% partial 'form/shipping/shipping-types-apiship' obShippingType=obShippingType isChecked=isChecked %}
+    {% else %}
+    <div class="form-check">
+        <input class="form-check-input" type="radio" name="shipping_type_id"
+               id="shipping-type-{{ obShippingType.id }}" {{ isChecked ? 'checked' : '' }}
+               value="{{ obShippingType.id }}" required>
+        <label class="form-check-label" for="shipping-type-{{ obShippingType.id }}">
+            {{ obShippingType.name }} {{ obShippingType.price }} {{ obShippingType.currency }}
+        </label>
+    </div>
+    {% endif %}
+{% endfor %}
